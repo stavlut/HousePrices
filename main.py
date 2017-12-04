@@ -6,11 +6,15 @@ from sklearn.metrics import mean_squared_error
 import numpy as np
 import matplotlib.pyplot as plt
 import lightgbm as lgb
+import Preprocessing
 
+data = pd.read_csv("C:\\Users\\slutzky\\Desktop\\train.csv")
+data.drop('Id', axis=1, inplace=True)
 plt.style.use(style='ggplot')
 plt.rcParams['figure.figsize'] = (10, 6)
 
 
+data= Preprocessing.preprocess()
 
 
 train, test = train_test_split(data, test_size=0.2,random_state=1)
@@ -43,11 +47,7 @@ params = {
 
 print('Start training...')
 # train
-gbm = lgb.train(params,
-                lgb_train,
-                num_boost_round=10000,
-                valid_sets=lgb_eval)
-
+gbm = lgb.train(params,lgb_train,num_boost_round=10000,valid_sets=lgb_eval)
 y_pred = gbm.predict(test, num_iteration=gbm.best_iteration)
 
 ####### random forest  ###########

@@ -8,36 +8,33 @@ import matplotlib.pyplot as plt
 import lightgbm as lgb
 import Preprocessing
 
-
-#select data
-data = pd.read_csv("C:\\Users\\slutzky\\Desktop\\train.csv")
-data.drop('Id', axis=1, inplace=True)
-
-#preprocess
-data= Preprocessing.preprocess()
-data = Preprocessing.numericals_data_preprocessing(data)
-
-
 #plot
 plt.style.use(style='ggplot')
 plt.rcParams['figure.figsize'] = (10, 6)
+
+#select data
+data = pd.read_csv("C:\\Users\\slutzky\\Desktop\\train.csv")
+
+#preprocess
+data = Preprocessing.numericals_data_preprocessing(data)
+data= Preprocessing.catrgorial_data_preprocessing(data)
+categoricals = data.select_dtypes(exclude=[np.number])
+data.drop('Id', axis=1, inplace=True)
+data = pd.get_dummies(data, columns=categoricals, dummy_na=True)
+data = data.fillna(0)
+data["SalePrice"] = np.log1p(data["SalePrice"])
 
 
 #get categolrial /numerical
 categoricals = data.select_dtypes(exclude=[np.number])
 numericals = data.select_dtypes(include=[np.number])
 
-#git dummies
-data = pd.get_dummies(data,columns=categoricals,dummy_na=True)
-data = data.fillna(0)
-
-#splite to train &test
-train, test = train_test_split(data, test_size=0.2,random_state=1)
+# #splite to train &test
+train, test = train_test_split(data, test_size=0.2,random_state=3)
 print(train.SalePrice.describe())
 print(train.SalePrice.skew())
 plt.hist(train.SalePrice, color='blue')
 plt.show()
-
 y_truth = test["SalePrice"]
 test = test.drop('SalePrice', axis=1)
 features = train.drop('SalePrice', axis=1)

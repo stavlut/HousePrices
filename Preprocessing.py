@@ -10,10 +10,8 @@ from sklearn.preprocessing import LabelEncoder
 import lightgbm as lgb
 #import matplotlib.pyplot as plt
 
-data = pd.read_csv("C:\\Users\\Simo\\Desktop\\HousePrices\\train.csv")
-data.drop('Id', axis=1, inplace=True)
-
-categoricals = data.select_dtypes(exclude=[np.number])
+# data = pd.read_csv("C:\\Users\\Simo\\Desktop\\HousePrices\\train.csv")
+# categoricals = data.select_dtypes(exclude=[np.number])
 
 def numericals_data_preprocessing(data):
     numericals = data.select_dtypes(include=[np.number])
@@ -30,7 +28,7 @@ def numericals_data_preprocessing(data):
     data= data[data['BsmtFinSF1'] <= 2500]
     data= data[data['GrLivArea'] <= 4000]
     for numeric in numericals:
-        if(data[numeric].skew()>0.75):
+        if(data[numeric].skew()>0.75 and numeric != "SalePrice" ):
             data[numeric] = np.log1p(data[numeric])
     # remove features
     data.drop('BsmtFinSF2',axis=1, inplace=True)
@@ -166,9 +164,8 @@ def MasVnrType_Processing(data):
     column_data=fill_na_with_value(data.MasVnrType,"None")
     data["asVnrType"]=column_data
 
-def preprocess_kategory(data):
-    plt.style.use(style='ggplot')
-    plt.rcParams['figure.figsize'] = (10, 6)
+def catrgorial_data_preprocessing(data):
+    #data.drop('Id', axis=1, inplace=True)
     column_data=MSZoning_Processing(data)
     data['MSZoning'] = column_data
     #regression_check(data,categoria)
@@ -189,6 +186,8 @@ def preprocess_kategory(data):
     Exterior1st_Processing(data)
     Exterior2nd_Processing(data)
     MasVnrType_Processing(data)
+    #categoricals = data.select_dtypes(exclude=[np.number])
+    #data = pd.get_dummies(data, columns=categoricals, dummy_na=True)
     return  data
 #
 #

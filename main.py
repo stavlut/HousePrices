@@ -7,16 +7,17 @@ import numpy as np
 import matplotlib.pyplot as plt
 import lightgbm as lgb
 import csv
+import os
 import Preprocessing
 
 def writeToFile(pred,id,file_name):
+    if os.path.exists(file_name):
+        os.remove(file_name)
+    results={'Id':id,'SalePrice':pred}
     with open(file_name, 'w') as csvfile:
-        fieldnames = ['Id', 'SalePrice']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-        for single_pred in pred:
-            for single_id in id:
-                writer.writerow({'Id': single_id, 'SalePrice':single_pred })
+        df=pd.DataFrame(results)
+        df.to_csv(file_name, sep=',', encoding='utf-8',index=False)
+    print ("done")
 
 #plot
 plt.style.use(style='ggplot')
@@ -49,7 +50,8 @@ def preprocess_train(train):
     print("try_train1")
     print(len(train.columns))
     train = train.drop('Id', axis=1)
-    train["SalePrice"] = np.log1p(train["SalePrice"])
+    #train["SalePrice"] = np.log1p(train["SalePrice"])
+    train["SalePrice"] =train["SalePrice"]
     target=train["SalePrice"]
     train = train.drop('SalePrice', axis=1)
     #train = Preprocessing.numericals_data_preprocessing(train)
@@ -97,11 +99,7 @@ def lgb(features_train,target_train,features_test):
     y_predlgb = gbm.predict(features_train, num_iteration=gbm.best_iteration)
     writeToFile(y_predlgb, id, "C:\\Users\\slutzky\\Desktop\\ans")
 
-def random_forest(features,target,test):
-    rfr = RandomForestRegressor()
-    rfr.fit(features,target)
-    y_predict = rfr.predict(test)
-    return  y_predict
+
 
 from sklearn.tree import DecisionTreeRegressor
 def desTreeClass(features,target,test):
@@ -109,6 +107,37 @@ def desTreeClass(features,target,test):
     clf.fit(features,target)
     y_predict = clf.predict(test,check_input=True)
     return  y_predict
+
+
+from sklearn.svm import LinearSVC
+def LinearSVCClass(features,target,test):
+    clf = LinearSVC(random_state=0)
+    clf.fit(features,target)
+    y_predict = clf.predict(test)
+    return  y_predict
+
+
+from sklearn.svm import SVC
+def NonLinearSVCClass(features,target,test):
+    clf = SVC(kernel="poly")
+    clf.fit(features,target)
+    y_predict = clf.predict(test)
+    return  y_predict
+
+def random_forest(features,target,test):
+    rfr = RandomForestRegressor()
+    rfr.fit(features,target)
+    y_predict = rfr.predict(test)
+    return y_predict
+
+from sklearn.neighbors import KNeighborsClassifier
+def KNNClass(features,target,test):
+    rfr = KNeighborsClassifier(n_neighbors=3)
+    rfr.fit(features,target)
+    y_predict = rfr.predict(test)
+    return  y_predict
+
+
 
 def saleprice_remove_log(y_predict):
     y_predict = np.exp(y_predict)
@@ -127,9 +156,13 @@ def main():
     l = list( set(test)-set(train_feture))
     train_feture = train_feture.drop(r, axis=1)
     test = test.drop(l, axis=1)
-    #y_predict=random_forest(train_feture, target_train, test)
-    y_predict=desTreeClass(train_feture, target_train, test)
+    #y_predict=desTreeClass(train_feture, target_train, test)
+    #y_predict=LinearSVCClass(train_feture, target_train, test)
+    #y_predict=NonLinearSVCClass(train_feture, target_train, test)
     #y_predict=saleprice_remove_log(y_predict)
+    #y_predict=np.exp(y_predict)
+    #y_predict=random_forest(train_feture, target_train, test)
+    y_predict =KNNClass(train_feture, target_train, test)
     print(y_predict)
     writeToFile(y_predict, idtest, "C:\\Users\\slutzky\\Desktop\\try\\houseprice.csv")
 

@@ -6,79 +6,140 @@ from sklearn.metrics import mean_squared_error
 import numpy as np
 import matplotlib.pyplot as plt
 import lightgbm as lgb
+import csv
 import Preprocessing
+
+def writeToFile(pred,id,file_name):
+    with open(file_name, 'w') as csvfile:
+        fieldnames = ['Id', 'SalePrice']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+        for single_pred in pred:
+            for single_id in id:
+                writer.writerow({'Id': single_id, 'SalePrice':single_pred })
 
 #plot
 plt.style.use(style='ggplot')
 plt.rcParams['figure.figsize'] = (10, 6)
 
-#select data
-data = pd.read_csv("C:\\Users\\slutzky\\Desktop\\train.csv")
+def loud_data_train_and_test():
+    test= pd.read_csv("C:\\Users\\slutzky\\Desktop\\test.csv")
+    train = pd.read_csv("C:\\Users\\slutzky\\Desktop\\train.csv")
+    if(len(test.columns)+1==len(train.columns)):
+        idtest,test=preprocess_test(test)
+        target_train,train_feture=preprocess_train(train)
+        return idtest,test,target_train,train_feture
 
-#preprocess
-data = Preprocessing.numericals_data_preprocessing(data)
-data= Preprocessing.catrgorial_data_preprocessing(data)
-categoricals = data.select_dtypes(exclude=[np.number])
-data.drop('Id', axis=1, inplace=True)
-data = pd.get_dummies(data, columns=categoricals, dummy_na=True)
-data = data.fillna(0)
-data["SalePrice"] = np.log1p(data["SalePrice"])
+# #preprocess
+def preprocess_test(test):
+    print("try_test1")
+    print(len(test.columns))
+    test_id = test['Id']
+    test = test.drop('Id', axis=1)
+    #test = Preprocessing.numericals_data_preprocessing(test)
+    #test= Preprocessing.catrgorial_data_preprocessing(test)
+    test = test.fillna(0)
+    print("try_test_fillna")
+    categoricals = test.select_dtypes(exclude=[np.number])
+    test = pd.get_dummies(test, columns=categoricals, dummy_na=True)
+    #print(test.columns)
+    return test_id,test
+
+def preprocess_train(train):
+    print("try_train1")
+    print(len(train.columns))
+    train = train.drop('Id', axis=1)
+    train["SalePrice"] = np.log1p(train["SalePrice"])
+    target=train["SalePrice"]
+    train = train.drop('SalePrice', axis=1)
+    #train = Preprocessing.numericals_data_preprocessing(train)
+    #train= Preprocessing.catrgorial_data_preprocessing(train)
+    train = train.fillna(0)
+    print("try_train_fillna")
+    categoricals = train.select_dtypes(exclude=[np.number])
+    train = pd.get_dummies(train, columns=categoricals, dummy_na=True)
+    #print(train.columns)
+    return target,train
+
+# categoricals = train.select_dtypes(exclude=[np.number])
+# numericals = train.select_dtypes(include=[np.number])
+
+def splite_to_train_test(train):
+    train, test = train_test_split(train, test_size=0.2,random_state=3)
+    print(train.SalePrice.describe())
+    print(train.SalePrice.skew())
+    plt.hist(train.SalePrice, color='blue')
+    plt.show()
+    target_test = test['SalePrice']
+    target_train = train['SalePrice']
+    features_test = test.drop('SalePrice', axis=1)
+    features_train = train.drop('SalePrice', axis=1)
+    return features_train,target_train,features_test,target_test
+def lgb(features_train,target_train,features_test):
+    params = {
+        'task': 'train',
+        'boosting_type': 'gbdt',
+        'objective': 'regression',
+        'metric': {'l2', 'auc'},
+        'num_leaves': 31,
+        'learning_rate': 0.01,
+        'feature_fraction': 0.9,
+        'bagging_fraction': 0.8,
+        'bagging_freq': 5,
+        'verbose': 0
+    }
+    lgb_train = lgb.Dataset(features_train, target_train)
+    #lgb_eval = lgb.Dataset(test, y_truth, reference=lgb_train)
+    print('Start training...')
+    # train
+    # gbm = lgb.train(params,lgb_train,num_boost_round=10000,valid_sets=lgb_eval)
+    gbm = lgb.train(params, lgb_train, num_boost_round=10000)
+    y_predlgb = gbm.predict(features_train, num_iteration=gbm.best_iteration)
+    writeToFile(y_predlgb, id, "C:\\Users\\slutzky\\Desktop\\ans")
+
+def random_forest(features,target,test):
+    rfr = RandomForestRegressor()
+    rfr.fit(features,target)
+    y_predict = rfr.predict(test)
+    return  y_predict
+
+from sklearn.tree import DecisionTreeRegressor
+def desTreeClass(features,target,test):
+    clf = DecisionTreeRegressor()
+    clf.fit(features,target)
+    y_predict = clf.predict(test,check_input=True)
+    return  y_predict
+
+def saleprice_remove_log(y_predict):
+    y_predict = np.exp(y_predict)
+    return y_predict
+# def gbm():
+#     ######## sklearn gbm  ################
+#     params2 = {'n_estimators': 7200, 'max_depth': 4, 'min_samples_split': 2,
+#               'learning_rate': 0.01, 'loss': 'ls'}
+#     clf = GradientBoostingRegressor(**params2)
+#     clf.fit(features, target)
+#     y_predictgbm = clf.predict(test)
+#     print()
+def main():
+    idtest, test, target_train, train_feture=loud_data_train_and_test()
+    r=list(set(train_feture)-set(test))
+    l = list( set(test)-set(train_feture))
+    train_feture = train_feture.drop(r, axis=1)
+    test = test.drop(l, axis=1)
+    #y_predict=random_forest(train_feture, target_train, test)
+    y_predict=desTreeClass(train_feture, target_train, test)
+    #y_predict=saleprice_remove_log(y_predict)
+    print(y_predict)
+    writeToFile(y_predict, idtest, "C:\\Users\\slutzky\\Desktop\\try\\houseprice.csv")
+
+# print('Random Forest : The rmse of prediction is:', mean_squared_error(y_truth, y_predictrandom) ** 0.5)
+#
+# print('Light GBM : The rmse of prediction is:', mean_squared_error(y_truth, y_predlgb) ** 0.5)
+#
+# print('Sklearn GBM : The rmse of prediction is:', mean_squared_error(y_truth, y_predictgbm) ** 0.5)
 
 
-#get categolrial /numerical
-categoricals = data.select_dtypes(exclude=[np.number])
-numericals = data.select_dtypes(include=[np.number])
+main()
 
-# #splite to train &test
-train, test = train_test_split(data, test_size=0.2,random_state=3)
-print(train.SalePrice.describe())
-print(train.SalePrice.skew())
-plt.hist(train.SalePrice, color='blue')
-plt.show()
-y_truth = test["SalePrice"]
-test = test.drop('SalePrice', axis=1)
-features = train.drop('SalePrice', axis=1)
-target = train["SalePrice"]
 
-#lgb
-lgb_train = lgb.Dataset(features, target)
-lgb_eval = lgb.Dataset(test, y_truth, reference=lgb_train)
-
-params = {
-    'task': 'train',
-    'boosting_type': 'gbdt',
-    'objective': 'regression',
-    'metric': {'l2', 'auc'},
-    'num_leaves': 31,
-    'learning_rate': 0.01,
-    'feature_fraction': 0.9,
-    'bagging_fraction': 0.8,
-    'bagging_freq': 5,
-    'verbose': 0
-}
-
-print('Start training...')
-# train
-gbm = lgb.train(params,lgb_train,num_boost_round=10000,valid_sets=lgb_eval)
-y_pred = gbm.predict(test, num_iteration=gbm.best_iteration)
-
-####### random forest  ###########
-# print(features)
-rfr = RandomForestRegressor()
-rfr.fit(features,target)
-y_predict = rfr.predict(test)
-
-######## sklearn gbm  ################
-
-params2 = {'n_estimators': 7200, 'max_depth': 4, 'min_samples_split': 2,
-          'learning_rate': 0.01, 'loss': 'ls'}
-clf = GradientBoostingRegressor(**params2)
-
-clf.fit(features, target)
-y_predict2 = clf.predict(test)
-
-print('Random Forest : The rmse of prediction is:', mean_squared_error(y_truth, y_predict) ** 0.5)
-
-print('Light GBM : The rmse of prediction is:', mean_squared_error(y_truth, y_pred) ** 0.5)
-
-print('Sklearn GBM : The rmse of prediction is:', mean_squared_error(y_truth, y_predict2) ** 0.5)

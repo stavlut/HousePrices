@@ -109,7 +109,7 @@ def regression_check(df,col_name):
 def LotShape_Processing(data):
     column_data=fill_na_with_value(data.LotShape,"Reg")
     column_data= column_data.replace({"Reg":1,"IR1":0,"IR2":0,"IR3":0 })
-    print (column_data)
+    #print (column_data)
     return column_data
 
 # LotShape

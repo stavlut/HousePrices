@@ -37,12 +37,12 @@ def preprocess_test(test):
     print(len(test.columns))
     test_id = test['Id']
     test = test.drop('Id', axis=1)
-    #test = Preprocessing.numericals_data_preprocessing(test)
-    #test= Preprocessing.catrgorial_data_preprocessing(test)
-    test = test.fillna(0)
+    test = Preprocessing.numericals_data_preprocessing(test,"test")
+    #test= Preprocessing.catrgorial_data_preprocessing_2(test)
     print("try_test_fillna")
     categoricals = test.select_dtypes(exclude=[np.number])
     test = pd.get_dummies(test, columns=categoricals, dummy_na=True)
+    test = test.apply(lambda x: x.fillna(x.value_counts().index[0]))
     #print(test.columns)
     return test_id,test
 
@@ -51,14 +51,15 @@ def preprocess_train(train):
     print(len(train.columns))
     train = train.drop('Id', axis=1)
     #train["SalePrice"] = np.log1p(train["SalePrice"])
-    train["SalePrice"] =train["SalePrice"]
+    #train["SalePrice"] =train["SalePrice"]
+    train = Preprocessing.numericals_data_preprocessing(train,"train")
+    #train= Preprocessing.catrgorial_data_preprocessing_2(train)
     target=train["SalePrice"]
     train = train.drop('SalePrice', axis=1)
-    #train = Preprocessing.numericals_data_preprocessing(train)
-    #train= Preprocessing.catrgorial_data_preprocessing(train)
-    train = train.fillna(0)
     print("try_train_fillna")
     categoricals = train.select_dtypes(exclude=[np.number])
+    train = train.apply(lambda x: x.fillna(x.value_counts().index[0]))
+
     train = pd.get_dummies(train, columns=categoricals, dummy_na=True)
     #print(train.columns)
     return target,train
@@ -156,13 +157,14 @@ def main():
     l = list( set(test)-set(train_feture))
     train_feture = train_feture.drop(r, axis=1)
     test = test.drop(l, axis=1)
+
     #y_predict=desTreeClass(train_feture, target_train, test)
     #y_predict=LinearSVCClass(train_feture, target_train, test)
     #y_predict=NonLinearSVCClass(train_feture, target_train, test)
     #y_predict=saleprice_remove_log(y_predict)
     #y_predict=np.exp(y_predict)
-    #y_predict=random_forest(train_feture, target_train, test)
-    y_predict =KNNClass(train_feture, target_train, test)
+    y_predict=random_forest(train_feture, target_train, test)
+    #y_predict =KNNClass(train_feture, target_train, test)
     print(y_predict)
     writeToFile(y_predict, idtest, "C:\\Users\\slutzky\\Desktop\\try\\houseprice.csv")
 
